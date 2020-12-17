@@ -31,6 +31,12 @@
 # include <stddef.h>
 # include <stdint.h>
 
+#if _MSC_VER
+#define DLL _declspec(dllexport)
+#else
+#define DLL 
+#endif
+
 struct bsdiff_stream
 {
 	void* opaque;
@@ -41,5 +47,7 @@ struct bsdiff_stream
 };
 
 int bsdiff(const uint8_t* old, int64_t oldsize, const uint8_t* new, int64_t newsize, struct bsdiff_stream* stream);
+
+DLL int test(int a, int b);
 
 #endif

@@ -1,0 +1,1 @@
+f:/android-ndk-r16b-windows-x86_64/android-ndk-r16b/ndk-build.cmd
