@@ -6,4 +6,11 @@ bsdiff_windows_dll/Debug/
 bsdiff_windows_dll/Release/
 bsdiff_windows_dll/x64/
 
-
+bsdiff_unity/.idea/
+bsdiff_unity/Library/
+bsdiff_unity/obj/
+bsdiff_unity/Logs/
+bsdiff_unity/Temp/
+bsdiff_unity/bsdiff_unity.sln
+bsdiff_unity/Assembly-CSharp.csproj
+bsdiff_unity/Packages/packages-lock.json
