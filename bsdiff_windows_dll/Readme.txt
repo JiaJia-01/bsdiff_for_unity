@@ -1,0 +1,1 @@
+use visual studio 2019 to open bsdiff_windows_dll.sln

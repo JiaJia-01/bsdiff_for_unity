@@ -1,4 +1,9 @@
 bsdiff_android_so/libs
 bsdiff_android_so/obj
 
+bsdiff_windows_dll/.vs
+bsdiff_windows_dll/Debug/
+bsdiff_windows_dll/Release/
+bsdiff_windows_dll/x64/
+
 
