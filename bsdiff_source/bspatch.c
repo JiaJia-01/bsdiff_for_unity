@@ -1,6 +1,5 @@
-﻿/*-
+/*-
  * Copyright 2003-2005 Colin Percival
- * Copyright 2012 Matthew Endsley
  * All rights reserved
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,12 +24,25 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <limits.h>
-#include "bspatch.h"
+#include <sys/types.h>
 
-static int64_t offtin(uint8_t *buf)
+#if defined _MSC_VER
+#include "window_helper.h"
+#else
+#include <unistd.h>
+#define SET_OPEN_FILE_BINARY_MODE
+#endif
+
+#include <bzlib.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+//#include <err.h>
+#include <fcntl.h>
+
+static off_t offtin(u_char *buf)
 {
-	int64_t y;
+	off_t y;
 
 	y=buf[7]&0x7F;
 	y=y*256;y+=buf[6];
@@ -46,31 +58,114 @@ static int64_t offtin(uint8_t *buf)
 	return y;
 }
 
-int bspatch(const uint8_t* old, int64_t oldsize, uint8_t* new, int64_t newsize, struct bspatch_stream* stream)
+DLL int Patch(const char* oldFile, const char* newFile, const char* patchFile)
+//int main(int argc,char * argv[])
 {
-	uint8_t buf[8];
-	int64_t oldpos,newpos;
-	int64_t ctrl[3];
-	int64_t i;
+	FILE * f, * cpf, * dpf, * epf;
+	BZFILE * cpfbz2, * dpfbz2, * epfbz2;
+	int cbz2err, dbz2err, ebz2err;
+	int fd;
+	ssize_t oldsize,newsize;
+	ssize_t bzctrllen,bzdatalen;
+	u_char header[32],buf[8];
+	u_char *old = NULL, *new = NULL;
+	off_t oldpos,newpos;
+	off_t ctrl[3];
+	off_t lenread;
+	off_t i;
+
+	//if(argc!=4) errx(1,"usage: %s oldfile newfile patchfile\n",argv[0]);
+
+	/* Open patch file */
+	if ((f = fopen(patchFile, "r")) == NULL)
+		err(1, "fopen(%s)", patchFile);
+
+	/*
+	File format:
+		0	8	"BSDIFF40"
+		8	8	X
+		16	8	Y
+		24	8	sizeof(newfile)
+		32	X	bzip2(control block)
+		32+X	Y	bzip2(diff block)
+		32+X+Y	???	bzip2(extra block)
+	with control block a set of triples (x,y,z) meaning "add x bytes
+	from oldfile to x bytes from the diff block; copy y bytes from the
+	extra block; seek forwards in oldfile by z bytes".
+	*/
+
+	/* Read header */
+	if (fread(header, 1, 32, f) < 32) {
+		if (feof(f))
+			errx(1, "Corrupt patch\n");
+		err(1, "fread(%s)", patchFile);
+	}
+
+	/* Check for appropriate magic */
+	if (memcmp(header, "BSDIFF40", 8) != 0)
+		errx(1, "Corrupt patch\n");
+
+	/* Read lengths from header */
+	bzctrllen=offtin(header+8);
+	bzdatalen=offtin(header+16);
+	newsize=offtin(header+24);
+	if((bzctrllen<0) || (bzdatalen<0) || (newsize<0))
+		errx(1,"Corrupt patch\n");
+
+	/* Close patch file and re-open it via libbzip2 at the right places */
+	if (fclose(f))
+		err(1, "fclose(%s)", patchFile);
+	if ((cpf = fopen(patchFile, "r")) == NULL)
+		err(1, "fopen(%s)", patchFile);
+	if (fseeko(cpf, 32, SEEK_SET))
+		err(1, "fseeko(%s, %lld)", patchFile,
+		    (long long)32);
+	if ((cpfbz2 = BZ2_bzReadOpen(&cbz2err, cpf, 0, 0, NULL, 0)) == NULL)
+		errx(1, "BZ2_bzReadOpen, bz2err = %d", cbz2err);
+	if ((dpf = fopen(patchFile, "r")) == NULL)
+		err(1, "fopen(%s)", patchFile);
+	if (fseeko(dpf, 32 + bzctrllen, SEEK_SET))
+		err(1, "fseeko(%s, %lld)", patchFile,
+		    (long long)(32 + bzctrllen));
+	if ((dpfbz2 = BZ2_bzReadOpen(&dbz2err, dpf, 0, 0, NULL, 0)) == NULL)
+		errx(1, "BZ2_bzReadOpen, bz2err = %d", dbz2err);
+	if ((epf = fopen(patchFile, "r")) == NULL)
+		err(1, "fopen(%s)", patchFile);
+	if (fseeko(epf, 32 + bzctrllen + bzdatalen, SEEK_SET))
+		err(1, "fseeko(%s, %lld)", patchFile,
+		    (long long)(32 + bzctrllen + bzdatalen));
+	if ((epfbz2 = BZ2_bzReadOpen(&ebz2err, epf, 0, 0, NULL, 0)) == NULL)
+		errx(1, "BZ2_bzReadOpen, bz2err = %d", ebz2err);
+
+	SET_OPEN_FILE_BINARY_MODE
+	if(((fd=open(oldFile,O_RDONLY,0))<0) ||
+		((oldsize=lseek(fd,0,SEEK_END))==-1) ||
+		((old=malloc(oldsize+1))==NULL) ||
+		(lseek(fd,0,SEEK_SET)!=0) ||
+		(read(fd,old,oldsize)!=oldsize) ||
+		(close(fd)==-1)) err(1,"%s",oldFile);
+	if((new=malloc(newsize+1))==NULL) err(1,NULL);
 
 	oldpos=0;newpos=0;
 	while(newpos<newsize) {
 		/* Read control data */
 		for(i=0;i<=2;i++) {
-			if (stream->read(stream, buf, 8))
-				return -1;
+			lenread = BZ2_bzRead(&cbz2err, cpfbz2, buf, 8);
+			if ((lenread < 8) || ((cbz2err != BZ_OK) &&
+			    (cbz2err != BZ_STREAM_END)))
+				errx(1, "Corrupt patch\n");
 			ctrl[i]=offtin(buf);
 		};
 
 		/* Sanity-check */
-		if (ctrl[0]<0 || ctrl[0]>INT_MAX ||
-			ctrl[1]<0 || ctrl[1]>INT_MAX ||
-			newpos+ctrl[0]>newsize)
-			return -1;
+		if(newpos+ctrl[0]>newsize)
+			errx(1,"Corrupt patch\n");
 
 		/* Read diff string */
-		if (stream->read(stream, new + newpos, ctrl[0]))
-			return -1;
+		lenread = BZ2_bzRead(&dbz2err, dpfbz2, new + newpos, ctrl[0]);
+		if ((lenread < ctrl[0]) ||
+		    ((dbz2err != BZ_OK) && (dbz2err != BZ_STREAM_END)))
+			errx(1, "Corrupt patch\n");
 
 		/* Add old data to diff string */
 		for(i=0;i<ctrl[0];i++)
@@ -83,112 +178,34 @@ int bspatch(const uint8_t* old, int64_t oldsize, uint8_t* new, int64_t newsize, 
 
 		/* Sanity-check */
 		if(newpos+ctrl[1]>newsize)
-			return -1;
+			errx(1,"Corrupt patch\n");
 
 		/* Read extra string */
-		if (stream->read(stream, new + newpos, ctrl[1]))
-			return -1;
+		lenread = BZ2_bzRead(&ebz2err, epfbz2, new + newpos, ctrl[1]);
+		if ((lenread < ctrl[1]) ||
+		    ((ebz2err != BZ_OK) && (ebz2err != BZ_STREAM_END)))
+			errx(1, "Corrupt patch\n");
 
 		/* Adjust pointers */
 		newpos+=ctrl[1];
 		oldpos+=ctrl[2];
 	};
 
-	return 0;
-}
-
-#if defined(BSPATCH_EXECUTABLE)
-
-#include <bzlib.h>
-#include <stdlib.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <string.h>
-#include <err.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <unistd.h>
-#include <fcntl.h>
-
-static int bz2_read(const struct bspatch_stream* stream, void* buffer, int length)
-{
-	int n;
-	int bz2err;
-	BZFILE* bz2;
-
-	bz2 = (BZFILE*)stream->opaque;
-	n = BZ2_bzRead(&bz2err, bz2, buffer, length);
-	if (n != length)
-		return -1;
-
-	return 0;
-}
-
-int main(int argc,char * argv[])
-{
-	FILE * f;
-	int fd;
-	int bz2err;
-	uint8_t header[24];
-	uint8_t *old, *new;
-	int64_t oldsize, newsize;
-	BZFILE* bz2;
-	struct bspatch_stream stream;
-	struct stat sb;
-
-	if(argc!=4) errx(1,"usage: %s oldfile newfile patchfile\n",argv[0]);
-
-	/* Open patch file */
-	if ((f = fopen(argv[3], "r")) == NULL)
-		err(1, "fopen(%s)", argv[3]);
-
-	/* Read header */
-	if (fread(header, 1, 24, f) != 24) {
-		if (feof(f))
-			errx(1, "Corrupt patch\n");
-		err(1, "fread(%s)", argv[3]);
-	}
-
-	/* Check for appropriate magic */
-	if (memcmp(header, "ENDSLEY/BSDIFF43", 16) != 0)
-		errx(1, "Corrupt patch\n");
-
-	/* Read lengths from header */
-	newsize=offtin(header+16);
-	if(newsize<0)
-		errx(1,"Corrupt patch\n");
-
-	/* Close patch file and re-open it via libbzip2 at the right places */
-	if(((fd=open(argv[1],O_RDONLY,0))<0) ||
-		((oldsize=lseek(fd,0,SEEK_END))==-1) ||
-		((old=malloc(oldsize+1))==NULL) ||
-		(lseek(fd,0,SEEK_SET)!=0) ||
-		(read(fd,old,oldsize)!=oldsize) ||
-		(fstat(fd, &sb)) ||
-		(close(fd)==-1)) err(1,"%s",argv[1]);
-	if((new=malloc(newsize+1))==NULL) err(1,NULL);
-
-	if (NULL == (bz2 = BZ2_bzReadOpen(&bz2err, f, 0, 0, NULL, 0)))
-		errx(1, "BZ2_bzReadOpen, bz2err=%d", bz2err);
-
-	stream.read = bz2_read;
-	stream.opaque = bz2;
-	if (bspatch(old, oldsize, new, newsize, &stream))
-		errx(1, "bspatch");
-
 	/* Clean up the bzip2 reads */
-	BZ2_bzReadClose(&bz2err, bz2);
-	fclose(f);
+	BZ2_bzReadClose(&cbz2err, cpfbz2);
+	BZ2_bzReadClose(&dbz2err, dpfbz2);
+	BZ2_bzReadClose(&ebz2err, epfbz2);
+	if (fclose(cpf) || fclose(dpf) || fclose(epf))
+		err(1, "fclose(%s)", patchFile);
 
 	/* Write the new file */
-	if(((fd=open(argv[2],O_CREAT|O_TRUNC|O_WRONLY,sb.st_mode))<0) ||
+	SET_OPEN_FILE_BINARY_MODE
+	if(((fd=open(newFile,O_CREAT|O_TRUNC|O_WRONLY,0666))<0) ||
 		(write(fd,new,newsize)!=newsize) || (close(fd)==-1))
-		err(1,"%s",argv[2]);
+		err(1,"%s",newFile);
 
 	free(new);
 	free(old);
 
 	return 0;
 }
-
-#endif

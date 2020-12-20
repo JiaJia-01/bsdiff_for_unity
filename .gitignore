@@ -7,6 +7,7 @@ bsdiff_windows_dll/Release/
 bsdiff_windows_dll/x64/
 
 bsdiff_unity/.idea/
+bsdiff_unity/.vs/
 bsdiff_unity/Library/
 bsdiff_unity/obj/
 bsdiff_unity/Logs/
