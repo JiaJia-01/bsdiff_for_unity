@@ -30,14 +30,15 @@
 #include "window_helper.h"
 #else
 #include <unistd.h>
+#include <err.h>
 #define SET_OPEN_FILE_BINARY_MODE
+#define DLL
 #endif
 
 #include <bzlib.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-//#include <err.h>
 #include <fcntl.h>
 
 static off_t offtin(u_char *buf)

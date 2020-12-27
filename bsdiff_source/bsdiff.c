@@ -27,8 +27,10 @@
 #if defined _MSC_VER
 #include "window_helper.h"
 #else
+#include <err.h>
 #include <unistd.h>
 #define SET_OPEN_FILE_BINARY_MODE
+#define DLL
 #endif
 
 #include <sys/types.h>
@@ -194,7 +196,7 @@ static void offtout(off_t x,u_char *buf)
 	if(x<0) buf[7]|=0x80;
 }
 
-int Diff(const char* oldFile, const char* newFile, const char* patchFile)
+DLL int Diff(const char* oldFile, const char* newFile, const char* patchFile)
 //int main(int argc,char *argv[])
 {
 	int fd;

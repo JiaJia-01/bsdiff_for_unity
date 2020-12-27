@@ -7,17 +7,17 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		84181694258B604700FF236C /* bsdiff.h in Headers */ = {isa = PBXBuildFile; fileRef = 84181690258B604600FF236C /* bsdiff.h */; };
+		360526C12598CDE200F2C3A8 /* libbz2.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 360526C02598CDE200F2C3A8 /* libbz2.tbd */; };
+		360526C42598CDEF00F2C3A8 /* libbz2.1.0.5.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 360526C32598CDEF00F2C3A8 /* libbz2.1.0.5.tbd */; };
 		84181695258B604700FF236C /* bspatch.c in Sources */ = {isa = PBXBuildFile; fileRef = 84181691258B604600FF236C /* bspatch.c */; };
-		84181696258B604700FF236C /* bspatch.h in Headers */ = {isa = PBXBuildFile; fileRef = 84181692258B604600FF236C /* bspatch.h */; };
 		84181697258B604700FF236C /* bsdiff.c in Sources */ = {isa = PBXBuildFile; fileRef = 84181693258B604700FF236C /* bsdiff.c */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		360526C02598CDE200F2C3A8 /* libbz2.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libbz2.tbd; path = usr/lib/libbz2.tbd; sourceTree = SDKROOT; };
+		360526C32598CDEF00F2C3A8 /* libbz2.1.0.5.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libbz2.1.0.5.tbd; path = usr/lib/libbz2.1.0.5.tbd; sourceTree = SDKROOT; };
 		84181680258B5F3800FF236C /* libbsdiff.dylib */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.dylib"; includeInIndex = 0; path = libbsdiff.dylib; sourceTree = BUILT_PRODUCTS_DIR; };
-		84181690258B604600FF236C /* bsdiff.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = bsdiff.h; path = ../bsdiff_source/bsdiff.h; sourceTree = "<group>"; };
 		84181691258B604600FF236C /* bspatch.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = bspatch.c; path = ../bsdiff_source/bspatch.c; sourceTree = "<group>"; };
-		84181692258B604600FF236C /* bspatch.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = bspatch.h; path = ../bsdiff_source/bspatch.h; sourceTree = "<group>"; };
 		84181693258B604700FF236C /* bsdiff.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = bsdiff.c; path = ../bsdiff_source/bsdiff.c; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -26,20 +26,30 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				360526C42598CDEF00F2C3A8 /* libbz2.1.0.5.tbd in Frameworks */,
+				360526C12598CDE200F2C3A8 /* libbz2.tbd in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		360526BF2598CDE100F2C3A8 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				360526C32598CDEF00F2C3A8 /* libbz2.1.0.5.tbd */,
+				360526C02598CDE200F2C3A8 /* libbz2.tbd */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		84181677258B5F3800FF236C = {
 			isa = PBXGroup;
 			children = (
 				84181693258B604700FF236C /* bsdiff.c */,
-				84181690258B604600FF236C /* bsdiff.h */,
 				84181691258B604600FF236C /* bspatch.c */,
-				84181692258B604600FF236C /* bspatch.h */,
 				84181681258B5F3800FF236C /* Products */,
+				360526BF2598CDE100F2C3A8 /* Frameworks */,
 			);
 			sourceTree = "<group>";
 		};
@@ -58,8 +68,6 @@
 			isa = PBXHeadersBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				84181696258B604700FF236C /* bspatch.h in Headers */,
-				84181694258B604700FF236C /* bsdiff.h in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -249,6 +257,7 @@
 				GCC_ENABLE_CPP_EXCEPTIONS = YES;
 				GCC_ENABLE_CPP_RTTI = YES;
 				GCC_SYMBOLS_PRIVATE_EXTERN = YES;
+				LINK_WITH_STANDARD_LIBRARIES = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
 			};
@@ -265,6 +274,7 @@
 				GCC_ENABLE_CPP_EXCEPTIONS = YES;
 				GCC_ENABLE_CPP_RTTI = YES;
 				GCC_SYMBOLS_PRIVATE_EXTERN = YES;
+				LINK_WITH_STANDARD_LIBRARIES = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
 			};
